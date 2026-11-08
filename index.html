@@ -35,7 +35,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 // Count the scan (tag name from ?tag=..., e.g. ?tag=1). Failures are ignored so the page always works.
-const COUNTER = 'https://abacus.jasoncameron.dev/hit/fortnite-token-mk7q2/';
+const COUNTER = 'https://abacus.jasoncameron.dev/hit/fortnite-token-hm2026b/';
 const tag = new URLSearchParams(location.search).get('tag');
 if (location.hostname !== 'localhost') {  // don't count local tests
   fetch(COUNTER + 'total').catch(() => {});
@@ -47,9 +47,14 @@ const hint = document.getElementById('hint');
 const finish = () => { document.body.classList.add('done'); hint.style.display = 'none'; video.pause(); };
 video.addEventListener('ended', finish);
 video.addEventListener('error', finish);
-// Phones block autoplay with sound: fall back to muted and offer a tap to unmute.
-video.play().catch(() => { video.muted = true; hint.style.display = 'block'; video.play().catch(finish); });
-hint.onclick = () => { video.muted = false; hint.style.display = 'none'; };
+// Browsers may block autoplay with sound (phones) or entirely (Brave): try muted, else ask for a tap to start.
+const showHint = text => { hint.textContent = text; hint.style.display = 'block'; };
+video.play().catch(() => {
+  video.muted = true;
+  video.play().then(() => showHint('🔊 Dotknij, aby włączyć dźwięk'))
+              .catch(() => showHint('▶ Dotknij, aby odtworzyć'));
+});
+hint.onclick = () => { video.muted = false; hint.style.display = 'none'; video.play().catch(finish); };
 
 const canvas = document.getElementById('scene');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
