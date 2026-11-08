@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Licznik skanów</title>
+<style>
+  body { margin: 0; min-height: 100dvh; background: radial-gradient(circle at 50% 0, #3a2a6b, #0b0620 70%); color: #fff;
+         font-family: system-ui, sans-serif; padding: 24px 16px calc(24px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+  main { max-width: 480px; margin: 0 auto; }
+  h1 { color: #ffd84a; text-transform: uppercase; font-weight: 900; font-size: 28px; text-align: center; margin: 8px 0 24px;
+       text-shadow: 0 3px 0 #b06a00; }
+  .total { text-align: center; background: #ffffff14; border-radius: 20px; padding: 24px; margin-bottom: 16px; }
+  .total b { display: block; font-size: 72px; color: #ffd84a; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  ul { list-style: none; padding: 0; margin: 0; }
+  li { display: flex; justify-content: space-between; background: #ffffff0f; border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; font-size: 18px; }
+  li b { color: #ffd84a; font-variant-numeric: tabular-nums; }
+  p { color: #fff9; font-size: 14px; text-align: center; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Skany tagów NFC</h1>
+  <div class="total">Wszystkie skany<b id="total">…</b></div>
+  <ul id="tags"></ul>
+  <p id="status">Odświeża się co 10 s</p>
+</main>
+<script>
+// Tag names: each NFC tag gets the link .../fortnite-token/?tag=NAME. Add your tag names here.
+const TAGS = ['1', '2', '3'];
+const API = 'https://abacus.jasoncameron.dev/get/fortnite-token-mk7q2/';
+const get = key => fetch(API + key).then(r => r.json()).then(j => j.value ?? 0).catch(() => null);
+const fmt = v => v === null ? '?' : v;
+
+document.getElementById('tags').innerHTML = TAGS.map(t => `<li>Tag ${t}<b id="tag-${t}">…</b></li>`).join('');
+
+async function refresh() {
+  const [total, ...per] = await Promise.all(['total', ...TAGS.map(t => 'tag-' + t)].map(get));
+  document.getElementById('total').textContent = fmt(total);
+  TAGS.forEach((t, i) => document.getElementById('tag-' + t).textContent = fmt(per[i]));
+  document.getElementById('status').textContent = (total === null ? 'Brak połączenia z licznikiem · ' : '')
+    + 'Odświeżono ' + new Date().toLocaleTimeString('pl-PL');
+}
+refresh();
+setInterval(refresh, 10000);
+</script>
+</body>
+</html>

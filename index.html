@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fortnite Token</title>
+<style>
+  html, body { margin: 0; height: 100%; height: 100dvh; background: #000; overflow: hidden; font-family: system-ui, sans-serif;
+               overscroll-behavior: none; touch-action: none; -webkit-tap-highlight-color: transparent; user-select: none; }
+  #intro, #scene { position: fixed; inset: 0; width: 100%; height: 100%; }
+  #intro { object-fit: cover; background: #000; z-index: 2; transition: opacity .8s; }
+  #scene { background: radial-gradient(circle at 50% 40%, #3a2a6b, #0b0620 70%); }
+  #hint { position: fixed; bottom: calc(24px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 3;
+          padding: 10px 18px; border: 0; border-radius: 99px; background: #fffc; font-size: 16px; display: none; }
+  h1 { position: fixed; top: calc(8% + env(safe-area-inset-top)); left: 0; right: 0; margin: 0 16px; text-align: center; z-index: 1;
+       color: #ffd84a; font-size: clamp(28px, 8vw, 64px); font-weight: 900; text-transform: uppercase;
+       text-shadow: 0 4px 0 #b06a00, 0 0 24px #ffb30088; opacity: 0; transform: scale(.6);
+       transition: opacity .8s .3s, transform .8s .3s cubic-bezier(.2, 1.6, .4, 1); }
+  .done h1 { opacity: 1; transform: none; }
+  .done #intro { opacity: 0; pointer-events: none; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<video id="intro" src="intro.mp4" playsinline autoplay preload="auto"></video>
+<button id="hint">🔊 Dotknij, aby włączyć dźwięk</button>
+<h1>Witaj szczęśliwy znalazco!</h1>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+// Count the scan (tag name from ?tag=..., e.g. ?tag=1). Failures are ignored so the page always works.
+const COUNTER = 'https://abacus.jasoncameron.dev/hit/fortnite-token-mk7q2/';
+const tag = new URLSearchParams(location.search).get('tag');
+if (location.hostname !== 'localhost') {  // don't count local tests
+  fetch(COUNTER + 'total').catch(() => {});
+  if (tag && /^[\w-]{1,40}$/.test(tag)) fetch(COUNTER + 'tag-' + tag).catch(() => {});
+}
+
+const video = document.getElementById('intro');
+const hint = document.getElementById('hint');
+const finish = () => { document.body.classList.add('done'); hint.style.display = 'none'; video.pause(); };
+video.addEventListener('ended', finish);
+video.addEventListener('error', finish);
+// Phones block autoplay with sound: fall back to muted and offer a tap to unmute.
+video.play().catch(() => { video.muted = true; hint.style.display = 'block'; video.play().catch(finish); });
+hint.onclick = () => { video.muted = false; hint.style.display = 'none'; };
+
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 1000);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x442200, 1.5));
+const sun = new THREE.DirectionalLight(0xffffff, 2.5); sun.position.set(3, 5, 4); scene.add(sun);
+const rim = new THREE.DirectionalLight(0xffcc66, 1.5); rim.position.set(-4, 2, -3); scene.add(rim);
+
+const pivot = new THREE.Group(); scene.add(pivot);
+let radius = 30;
+new GLTFLoader().load('token.glb', ({ scene: model }) => {
+  // Center the coin with its flat back at y=0, then glue a 180°-flipped copy back-to-back.
+  const box = new THREE.Box3().setFromObject(model);
+  const c = box.getCenter(new THREE.Vector3());
+  model.traverse(o => { if (o.isMesh) { o.geometry.translate(-c.x, -box.min.y, -c.z); o.geometry.computeVertexNormals(); } });
+  const back = model.clone();
+  back.rotation.z = Math.PI;                // rotation, not mirror, so the "F" reads right on both sides
+  const coin = new THREE.Group();
+  coin.add(model, back);
+  coin.rotation.x = Math.PI / 2;            // stand the coin up, face toward camera
+  pivot.add(coin);
+  radius = Math.max(box.max.x - box.min.x, box.max.z - box.min.z) / 2;
+  resize();
+});
+
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  // Fit the coin into ~70% of the narrower side (portrait phones are width-limited).
+  const fit = radius / 0.7 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) / Math.min(camera.aspect, 1);
+  camera.position.set(0, 0, fit);
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+renderer.setAnimationLoop(t => {
+  pivot.rotation.y = t / 900;
+  pivot.position.y = Math.sin(t / 600) * radius * 0.05 - radius * 0.15;
+  renderer.render(scene, camera);
+});
+</script>
+</body>
+</html>
