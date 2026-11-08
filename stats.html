@@ -28,7 +28,7 @@
 </main>
 <script>
 // Tag names: each NFC tag gets the link .../fortnite-token/?tag=NAME. Add your tag names here.
-const TAGS = ['1', '2', '3'];
+const TAGS = ['1', '2', '3', '4', '5'];
 const API = 'https://abacus.jasoncameron.dev/get/fortnite-token-mk7q2/';
 const get = key => fetch(API + key).then(r => r.json()).then(j => j.value ?? 0).catch(() => null);
 const fmt = v => v === null ? '?' : v;
