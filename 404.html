@@ -1,0 +1,8 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Fortnite Token</title><body style="background:#000">
+<script>
+// GitHub Pages serves this for any unknown path, e.g. /fortnite-token/1/%20 (a space copied onto the NFC tag).
+// Rescue the tag number from the path and go to the main page instead of showing "not found".
+var m = decodeURIComponent(location.pathname).match(/\/fortnite-token\/\s*([1-5])/);
+if (m) { try { sessionStorage.setItem("tag", m[1]); } catch (e) {} }
+location.replace("/fortnite-token/" + (m ? "?tag=" + m[1] : ""));
+</script>
