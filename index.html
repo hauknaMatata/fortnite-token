@@ -37,10 +37,13 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // Count the scan (tag name from ?tag=..., e.g. ?tag=1). Failures are ignored so the page always works.
 const COUNTER = 'https://abacus.jasoncameron.dev/hit/fortnite-token-hm2026b/';
 const tag = new URLSearchParams(location.search).get('tag');
-if (location.hostname !== 'localhost') {  // don't count local tests
-  fetch(COUNTER + 'total').catch(() => {});
-  if (tag && /^[\w-]{1,40}$/.test(tag)) fetch(COUNTER + 'tag-' + tag).catch(() => {});
+// One hit per visit (the free API rate-limits bursts): "tag-N" for tag scans, "total" for visits without a tag.
+// The stats page adds them up. Retries because a rate-limited hit would silently be lost.
+async function count(key, tries = 4) {
+  const r = await fetch(COUNTER + key).catch(() => null);
+  if (!(r && r.ok) && tries > 1) { await new Promise(res => setTimeout(res, 3000)); return count(key, tries - 1); }
 }
+if (location.hostname !== 'localhost') count(tag && /^[1-5]$/.test(tag) ? 'tag-' + tag : 'total');
 
 const video = document.getElementById('intro');
 const hint = document.getElementById('hint');

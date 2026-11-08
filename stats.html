@@ -30,7 +30,7 @@
   <button id="reset">Wyzeruj liczniki</button>
 </main>
 <script>
-// Tag names: each NFC tag gets the link .../fortnite-token/?tag=NAME. Add your tag names here.
+// Tag names: each NFC tag gets the link .../fortnite-token/?tag=N. Adding tags also needs index.html's /^[1-5]$/ check and a new counter key with admin key.
 const TAGS = ['1', '2', '3', '4', '5'];
 const BASE = 'https://abacus.jasoncameron.dev/';
 const NS = 'fortnite-token-hm2026b/';
@@ -39,13 +39,18 @@ const get = key => fetch(BASE + 'get/' + NS + key).then(r => r.json())
   .then(j => typeof j.value === 'number' ? j.value : j.error === 'Key not found' ? 0 : null).catch(() => null);
 const fmt = v => v === null ? '?' : v;
 
-document.getElementById('tags').innerHTML = TAGS.map(t => `<li>Tag ${t}<b id="tag-${t}">…</b></li>`).join('');
+document.getElementById('tags').innerHTML = TAGS.map(t => `<li>Tag ${t}<b id="tag-${t}">…</b></li>`).join('')
+  + '<li>Bez tagu (zwykły link)<b id="other">…</b></li>';
 
 async function refresh() {
-  const [total, ...per] = await Promise.all(['total', ...TAGS.map(t => 'tag-' + t)].map(get));
-  document.getElementById('total').textContent = fmt(total);
+  // "total" key holds visits without a tag; the big number is everything added up.
+  const [other, ...per] = await Promise.all(['total', ...TAGS.map(t => 'tag-' + t)].map(get));
+  const all = [other, ...per];
+  const failed = all.includes(null);
+  document.getElementById('total').textContent = failed ? '?' : all.reduce((a, b) => a + b, 0);
+  document.getElementById('other').textContent = fmt(other);
   TAGS.forEach((t, i) => document.getElementById('tag-' + t).textContent = fmt(per[i]));
-  document.getElementById('status').textContent = (total === null ? 'Brak połączenia z licznikiem · ' : '')
+  document.getElementById('status').textContent = (failed ? 'Brak połączenia z licznikiem · ' : '')
     + 'Odświeżono ' + new Date().toLocaleTimeString('pl-PL');
 }
 refresh();
